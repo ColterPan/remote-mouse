@@ -34,9 +34,17 @@ export const DOUBLE_TAP_SLOP_PX = 48;   // second touch must be near the first
 export const SCROLL_PX_PER_NOTCH = 36;  // finger travel for one wheel notch (speed 1)
 
 // Pointer acceleration: slow movements stay precise, fast flicks go far.
-const ACCEL_THRESHOLD = 0.15;  // px/ms below which there is no boost
-const ACCEL_MAX_SPEED = 2.5;   // px/ms above which the boost stops growing
-const ACCEL_STRENGTH = 1.2;    // how strong the boost is
+// The curve is smooth (no sudden "knee"), so speeding up feels continuous.
+const ACCEL_STRENGTH = 0.9;    // how strong the boost is
+const ACCEL_EXPONENT = 1.3;    // >1: gentle at low speed, stronger when fast
+const ACCEL_MAX_SPEED = 3.0;   // px/ms above which the boost stops growing
+// Finger speed is averaged over ~24 ms. Touch screens report slightly uneven
+// timestamps, and using raw per-event speed made the gain (and cursor) jitter.
+const SPEED_SMOOTHING_MS = 24;
+
+// Momentum scrolling: a two-finger flick keeps scrolling and slows down.
+export const FLING_MIN_SPEED = 0.004; // notches per ms (= 4 notches/s)
+const FLING_MAX_IDLE_MS = 60;         // fingers must still be moving at lift-off
 
 const BUTTON_FOR_FINGERS = { 1: 'left', 2: 'right', 3: 'middle' };
 const LEFT_CLICK = Object.freeze({ type: 'click', button: 'left' });
@@ -56,8 +64,20 @@ const clamp = (value, lo, hi) => Math.min(hi, Math.max(lo, value));
  * @returns {number}
  */
 export function pointerGain(speed, sensitivity) {
-  const boost = clamp(speed - ACCEL_THRESHOLD, 0, ACCEL_MAX_SPEED) * ACCEL_STRENGTH;
-  return sensitivity * (1 + boost);
+  const s = clamp(speed, 0, ACCEL_MAX_SPEED);
+  return sensitivity * (1 + ACCEL_STRENGTH * s ** ACCEL_EXPONENT);
+}
+
+/**
+ * Exponential moving average that respects uneven time steps.
+ * @param {number} previous  last smoothed value
+ * @param {number} sample    new raw value
+ * @param {number} dt        ms since the last sample
+ * @param {number} tau       smoothing time constant in ms
+ */
+export function smooth(previous, sample, dt, tau) {
+  const alpha = 1 - Math.exp(-dt / tau);
+  return previous + (sample - previous) * alpha;
 }
 
 /**
@@ -117,6 +137,9 @@ export class GestureTracker {
         owesClick: isSecondTouch, // the first tap's click hasn't been sent yet
         dragging: false,
         buffered: { dx: 0, dy: 0 }, // movement held back until we know it's a drag
+        speed: 0,                   // smoothed finger speed (px/ms)
+        scrollV: { x: 0, y: 0 },    // smoothed scroll velocity (notches/ms)
+        lastScrollT: -Infinity,
       };
     }
     this.pointers.set(id, { x, y, t });
@@ -138,7 +161,8 @@ export class GestureTracker {
     g.travel += Math.hypot(dx, dy);
 
     if (this.pointers.size === 1 && (g.maxFingers === 1 || g.dragging)) {
-      const gain = pointerGain(Math.hypot(dx, dy) / dt, this.options.sensitivity);
+      g.speed = smooth(g.speed, Math.hypot(dx, dy) / dt, dt, SPEED_SMOOTHING_MS);
+      const gain = pointerGain(g.speed, this.options.sensitivity);
       const step = { dx: dx * gain, dy: dy * gain };
       if (g.dragCandidate && !g.dragging) {
         // Don't move yet: the button must go down where you tapped.
@@ -152,7 +176,15 @@ export class GestureTracker {
     }
     if (this.pointers.size === 2 && !g.dragging) {
       // Each finger's movement counts half, i.e. we follow the midpoint.
-      return [{ type: 'scroll', ...panToScroll(dx / 2, dy / 2, this.options) }];
+      const scroll = panToScroll(dx / 2, dy / 2, this.options);
+      // Track velocity per finger-pair update for a possible fling. Both
+      // fingers report separately, so each event is roughly half the motion.
+      g.scrollV = {
+        x: smooth(g.scrollV.x, (scroll.dx * 2) / dt, dt, SPEED_SMOOTHING_MS * 2),
+        y: smooth(g.scrollV.y, (scroll.dy * 2) / dt, dt, SPEED_SMOOTHING_MS * 2),
+      };
+      g.lastScrollT = t;
+      return [{ type: 'scroll', ...scroll }];
     }
     // After lifting one of two fingers we deliberately do nothing, so the
     // pointer doesn't jump when a scroll ends.
@@ -177,7 +209,7 @@ export class GestureTracker {
       return [LEFT_CLICK, LEFT_CLICK]; // two quick taps → double-click
     }
     const owed = g.owesClick ? [LEFT_CLICK] : [];
-    if (!isTap) return owed;
+    if (!isTap) return [...owed, ...this._fling(g, t)];
     if (button === 'left') {
       this.pendingTap = { t, x: g.startX, y: g.startY }; // wait: maybe a drag follows
       return owed;
@@ -200,6 +232,14 @@ export class GestureTracker {
     this.gesture = null;
     this.pendingTap = null;
     return wasDragging ? [{ type: 'up', button: 'left' }] : [];
+  }
+
+  /** A two-finger scroll that was still moving at lift-off becomes a fling. */
+  _fling(g, t) {
+    if (g.maxFingers !== 2 || t - g.lastScrollT > FLING_MAX_IDLE_MS) return [];
+    const { x, y } = g.scrollV;
+    if (Math.hypot(x, y) < FLING_MIN_SPEED) return [];
+    return [{ type: 'fling', vx: x, vy: y }];
   }
 
   _isSecondTouch(x, y, t) {

@@ -22,6 +22,7 @@ movements would be lost entirely.
 from __future__ import annotations
 
 import logging
+import math
 import sys
 from typing import Any, Protocol
 
@@ -83,6 +84,22 @@ def split_subpixel(remainder: float, delta: float) -> tuple[int, float]:
     total = remainder + delta
     whole = int(total)
     return whole, total - whole
+
+
+WHEEL_UNITS_PER_NOTCH = 120  # Windows WHEEL_DELTA
+
+
+def wheel_units_to_notches(units: int) -> float:
+    """
+    Convert whole wheel units back to the notch value pynput expects.
+
+    pynput computes `int(notches * 120)`. Plain `units / 120` can come back as
+    e.g. 2.9999999 units after floating-point rounding and be truncated to 2,
+    so we nudge half a unit away from zero: int() then lands exactly on `units`.
+    """
+    if units == 0:
+        return 0.0
+    return (units + math.copysign(0.5, units)) / WHEEL_UNITS_PER_NOTCH
 
 
 class FakeController:
@@ -176,6 +193,7 @@ class PynputController:
             "win": keyboard.Key.cmd,
         }
         self._remainder = (0.0, 0.0)
+        self._wheel_remainder = (0.0, 0.0)
 
     def move(self, dx: float, dy: float) -> None:
         step_x, rest_x = split_subpixel(self._remainder[0], dx)
@@ -194,9 +212,20 @@ class PynputController:
         self._mouse.release(self._buttons[button])
 
     def scroll(self, dx: float, dy: float) -> None:
-        # pynput multiplies by the OS wheel step (120 on Windows), so fractional
-        # values give smooth scrolling in apps that support it.
-        self._mouse.scroll(dx, dy)
+        """
+        Smooth, lossless scrolling.
+
+        Windows measures the wheel in units of 1/120 of a notch, and modern
+        apps scroll smoothly when given small amounts. The phone sends many
+        tiny fractional scrolls; we convert them to whole wheel units and carry
+        the leftover forward (like `split_subpixel` for movement), so slow
+        scrolling is neither lost nor jumpy.
+        """
+        units_x, rest_x = split_subpixel(self._wheel_remainder[0], dx * WHEEL_UNITS_PER_NOTCH)
+        units_y, rest_y = split_subpixel(self._wheel_remainder[1], dy * WHEEL_UNITS_PER_NOTCH)
+        self._wheel_remainder = (rest_x, rest_y)
+        if units_x or units_y:
+            self._mouse.scroll(wheel_units_to_notches(units_x), wheel_units_to_notches(units_y))
 
     def type_text(self, text: str) -> None:
         self._keyboard.type(text)

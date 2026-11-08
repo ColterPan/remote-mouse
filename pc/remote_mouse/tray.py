@@ -28,7 +28,7 @@ import pystray
 from PIL import Image
 
 from . import autostart
-from .qr_window import QrWindow
+from .qr_window import QrWindow, apply_app_icon
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +48,7 @@ class TrayApp:
         self._root = tk.Tk()
         self._root.withdraw()  # invisible root; real windows are Toplevels
         self._apply_theme()
+        apply_app_icon(self._root)
         self._tasks: queue.Queue[Callable[[], None]] = queue.Queue()
         self._qr = QrWindow(self._root, get_addresses, build_url)
         self._on_reset_pairing = on_reset_pairing

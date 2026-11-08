@@ -3,7 +3,7 @@
 
 [project]
 name = "remote-mouse"
-version = "1.0.0"
+version = "1.1.0"
 description = "Ad-free, open-source remote mouse & keyboard: control your PC from your phone."
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -38,7 +38,9 @@ select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
 ignore = ["S104"]  # binding 0.0.0.0 is intentional; private-IP filter in security.py
 
 [tool.ruff.lint.per-file-ignores]
-"tests/*" = ["S101", "S105", "S106"]  # asserts and fake tokens are fine in tests
+"tests/*" = ["S101", "S105", "S106", "E501"]  # asserts and fake tokens are fine in tests
+"e2e/*" = ["S101", "S105", "S106", "E501"]    # same, plus embedded JS strings
+"tools/*" = ["S101", "E501"]                   # dev tools: asserts + embedded HTML/CSS
 
 [tool.bandit]
 exclude_dirs = ["tests", ".venv"]

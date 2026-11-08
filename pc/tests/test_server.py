@@ -6,6 +6,7 @@ WebSocket client, but plug in FakeController so no actual input happens.
 """
 
 import asyncio
+import time
 
 import aiohttp
 import pytest
@@ -361,6 +362,16 @@ class TestBackgroundServer:
                 await ws2.close()
         finally:
             await asyncio.to_thread(background.stop)
+
+    async def test_startup_error_is_reported_not_hidden_by_timeout(
+        self, ctx, monkeypatch, tmp_path
+    ):
+        monkeypatch.setattr(server, "WEB_DIR", tmp_path / "missing")
+        broken = BackgroundServer(ctx, "127.0.0.1", 0, None)
+        started = time.monotonic()
+        with pytest.raises(ValueError):
+            await asyncio.to_thread(broken.start)
+        assert time.monotonic() - started < 5
 
     async def test_port_in_use_raises(self, tmp_path, ctx):
         first = await asyncio.to_thread(self._start, tmp_path, ctx)

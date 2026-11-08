@@ -1,0 +1,66 @@
+"""
+pc_screenshot.py — Captures the PC pairing window for the README.
+
+Opens the real QrWindow with DEMO data only (address 192.168.1.20 and a fake
+token), so the published image can't be used to pair with anyone's PC.
+
+Run from the `pc` folder:   python tools/pc_screenshot.py
+Output: docs/images/pc-pairing-window.png
+"""
+
+from __future__ import annotations
+
+import ctypes
+import sys
+import tkinter as tk
+from ctypes import wintypes
+from pathlib import Path
+from tkinter import ttk
+
+from PIL import ImageGrab
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from remote_mouse.qr_window import QrWindow, apply_app_icon  # noqa: E402
+
+OUT = Path(__file__).resolve().parents[2] / "docs" / "images" / "pc-pairing-window.png"
+DEMO_URL = "https://{address}:8765/#t=DemoTokenNotARealOne0&fp=" + "0" * 64
+DWMWA_EXTENDED_FRAME_BOUNDS = 9
+
+
+def window_rect(widget: tk.Misc) -> tuple[int, int, int, int]:
+    """Screen rectangle of the whole window including its title bar."""
+    hwnd = ctypes.windll.user32.GetParent(widget.winfo_id())
+    rect = wintypes.RECT()
+    ctypes.windll.dwmapi.DwmGetWindowAttribute(
+        hwnd, DWMWA_EXTENDED_FRAME_BOUNDS, ctypes.byref(rect), ctypes.sizeof(rect)
+    )
+    return rect.left, rect.top, rect.right, rect.bottom
+
+
+def main() -> None:
+    ctypes.windll.shcore.SetProcessDpiAwareness(1)
+    root = tk.Tk()
+    root.withdraw()
+    style = ttk.Style(root)
+    if "vista" in style.theme_names():
+        style.theme_use("vista")
+    apply_app_icon(root)
+    window = QrWindow(root, lambda: ["192.168.1.20"], lambda a: DEMO_URL.format(address=a))
+    window.show()
+
+    def capture() -> None:
+        top = window._window  # noqa: SLF001 (tool needs the Toplevel)
+        assert top is not None
+        top.attributes("-topmost", True)
+        top.update()
+        OUT.parent.mkdir(parents=True, exist_ok=True)
+        ImageGrab.grab(bbox=window_rect(top), all_screens=True).save(OUT)
+        root.destroy()
+
+    root.after(1200, capture)
+    root.mainloop()
+    print("Saved", OUT)  # noqa: T201 (CLI tool output)
+
+
+if __name__ == "__main__":
+    main()

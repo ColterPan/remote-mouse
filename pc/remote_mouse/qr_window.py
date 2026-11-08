@@ -16,18 +16,29 @@ from __future__ import annotations
 
 import tkinter as tk
 from collections.abc import Callable
+from pathlib import Path
 from tkinter import ttk
 
 import qrcode
-from PIL import ImageTk
+from PIL import Image, ImageTk
 
 QR_PIXELS = 300
+ICON_PATH = Path(__file__).resolve().parent / "web" / "icons" / "icon-192.png"
+
+
+def apply_app_icon(root: tk.Tk) -> None:
+    """Use the Remote Mouse logo (not tkinter's feather) on every window."""
+    photo = ImageTk.PhotoImage(Image.open(ICON_PATH), master=root)
+    root.iconphoto(True, photo)
+    root._remote_mouse_icon = photo  # type: ignore[attr-defined]  # keep a reference
+
+
 STEPS = (
     "1.  Connect your phone to the same Wi-Fi as this PC.",
-    "2.  Open the phone camera and scan this code.",
-    "3.  The first time, Chrome warns about the certificate:\n"
-    "     tap Advanced → Proceed. (It's this PC's own certificate.)",
-    "4.  In Chrome's ⋮ menu, tap “Add to Home screen” for a one-tap icon.",
+    "2.  Android app (recommended): open Remote Mouse → Scan QR code.\n"
+    "     You only do this once — the app reconnects by itself after that.",
+    "3.  No app? Scan with the phone camera to open the remote in Chrome.\n"
+    "     First time only: tap Advanced → Proceed on the certificate warning.",
 )
 
 

@@ -16,9 +16,14 @@ export const DEFAULT_SETTINGS = Object.freeze({
   sensitivity: 1.6,
   scrollSpeed: 1.0,
   naturalScroll: true,
+  momentum: true,
   haptics: true,
   keepAwake: true,
+  tipsSeen: false,
 });
+
+/** One-tap speed choices shown in Settings (they just set `sensitivity`). */
+export const SPEED_PRESETS = Object.freeze({ precise: 1.0, normal: 1.6, fast: 2.4 });
 
 const RANGES = {
   sensitivity: [0.5, 4],

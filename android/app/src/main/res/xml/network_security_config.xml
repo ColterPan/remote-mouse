@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- No plain HTTP anywhere. The PC connection uses TLS with a pinned certificate
+     (see PinnedSocket.kt); the UI itself is bundled inside the app. -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>

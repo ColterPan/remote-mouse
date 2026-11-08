@@ -34,11 +34,23 @@ export class Connection {
    * @param {string} opts.url      e.g. "wss://192.168.1.5:8765/ws"
    * @param {() => string|null} opts.getToken
    * @param {(state: string, detail?: object) => void} opts.onStatus
+   * @param {(url: string) => WebSocket} [opts.createSocket]  the Android app
+   *        passes a factory for its NativeSocket (see native.js)
    */
-  constructor({ url, getToken, onStatus }) {
+  constructor({
+    url,
+    getToken,
+    onStatus,
+    createSocket = (u) => new WebSocket(u),
+    connectTimeoutMs = CONNECT_TIMEOUT_MS,
+  }) {
     this.url = url;
     this.getToken = getToken;
     this.onStatus = onStatus;
+    this.createSocket = createSocket;
+    // The Android app may need longer: try the old address, search the
+    // network for the PC, then connect to its new address.
+    this.connectTimeoutMs = connectTimeoutMs;
     this.ws = null;
     this.ready = false;
     this.attempt = 0;
@@ -93,7 +105,7 @@ export class Connection {
     this.onStatus('connecting');
     let ws;
     try {
-      ws = new WebSocket(this.url);
+      ws = this.createSocket(this.url);
     } catch {
       this._scheduleReconnect();
       return;
@@ -104,7 +116,7 @@ export class Connection {
     // in "connecting" for minutes. Don't wait — retry on our own schedule.
     this.connectTimer = setTimeout(() => {
       if (this.ws === ws && !this.ready) this._reconnectNow();
-    }, CONNECT_TIMEOUT_MS);
+    }, this.connectTimeoutMs);
 
     ws.addEventListener('open', () => {
       ws.send(JSON.stringify({ t: 'auth', token, v: PROTOCOL_VERSION }));
@@ -177,8 +189,8 @@ export class Connection {
 
   _scheduleReconnect() {
     if (this.stopped) return;
-    this.onStatus('offline');
     const delay = backoffDelay(this.attempt);
+    this.onStatus('offline', { retryInMs: delay });
     this.attempt += 1;
     clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => this._open(), delay);

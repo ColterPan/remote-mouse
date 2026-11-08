@@ -5,6 +5,8 @@ What is stored (in %APPDATA%\\RemoteMouse\\config.json):
     token  — the secret pairing code. A phone must present it before the PC
              accepts any mouse/keyboard command. It is put into the QR code.
     port   — the TCP port the server listens on (default 8765).
+    discovery — announce this PC on the local network so the phone app can
+             find it after an IP change (default true; set false to turn off).
 
 Design notes:
     * `Config` is an immutable (frozen) dataclass. To change a value you make
@@ -50,6 +52,7 @@ class Config:
 
     token: str
     port: int = DEFAULT_PORT
+    discovery: bool = True
 
 
 def new_token() -> str:
@@ -104,9 +107,11 @@ def load_config(path: Path) -> Config:
 
     token = raw.get("token")
     port = raw.get("port")
+    discovery = raw.get("discovery")
     config = Config(
         token=token if is_valid_token(token) else new_token(),
         port=port if is_valid_port(port) else DEFAULT_PORT,
+        discovery=discovery if isinstance(discovery, bool) else True,
     )
 
     if asdict(config) != raw:

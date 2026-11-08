@@ -129,6 +129,7 @@ class ServerContext:
     pending: dict[str, int] = field(default_factory=dict)
     on_client_change: Callable[[int], None] | None = None  # e.g. update the tray tooltip
     on_client_connected: Callable[[str], None] | None = None  # e.g. "phone connected" toast
+    name: str = field(default_factory=socket.gethostname)  # shown on the phone
 
     def notify_client_change(self) -> None:
         if self.on_client_change is not None:
@@ -219,7 +220,7 @@ async def websocket_handler(request: web.Request) -> web.StreamResponse:
     # exact moment still sees (and disconnects) this socket.
     ctx.sockets.add(ws)
     try:
-        if await _send(ws, {"t": "hello", "v": PROTOCOL_VERSION, "name": socket.gethostname()}):
+        if await _send(ws, {"t": "hello", "v": PROTOCOL_VERSION, "name": ctx.name}):
             logger.info("Phone connected from %s", ip)
             ctx.notify_client_change()
             if ctx.on_client_connected is not None:
@@ -416,8 +417,9 @@ class BackgroundServer:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         self._loop = loop
-        runner = web.AppRunner(create_app(self._ctx), access_log=None)
+        runner: web.AppRunner | None = None
         try:
+            runner = web.AppRunner(create_app(self._ctx), access_log=None)
             loop.run_until_complete(runner.setup())
             site = web.TCPSite(runner, self._host, self._port, ssl_context=self._ssl_context)
             loop.run_until_complete(site.start())
@@ -425,7 +427,8 @@ class BackgroundServer:
         except BaseException as exc:  # report startup failures to start()
             self._error = exc
             self._started.set()
-            loop.run_until_complete(runner.cleanup())
+            if runner is not None:
+                loop.run_until_complete(runner.cleanup())
             loop.close()
             return
 

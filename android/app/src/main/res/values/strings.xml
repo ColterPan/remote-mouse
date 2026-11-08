@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Remote Mouse</string>
+    <string name="scan_prompt">Scan the QR code shown on your PC</string>
+    <string name="webview_too_old">Please update \"Android System WebView\" from the Play Store, then reopen Remote Mouse.</string>
+</resources>

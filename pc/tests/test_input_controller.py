@@ -113,10 +113,33 @@ class TestPynputController:
         fake_mouse.press.assert_called_once_with(mouse.Button.left)
         fake_mouse.release.assert_called_once_with(mouse.Button.left)
 
-    def test_scroll(self, controller):
+    def test_scroll_sends_exact_wheel_units(self, controller):
         ctl, fake_mouse, _ = controller
         ctl.scroll(0.5, -1.0)
-        fake_mouse.scroll.assert_called_once_with(0.5, -1.0)
+        dx, dy = fake_mouse.scroll.call_args.args
+        # pynput does int(value * 120); that must land exactly on our units.
+        assert (int(dx * 120), int(dy * 120)) == (60, -120)
+
+    def test_tiny_scrolls_accumulate_instead_of_being_lost(self, controller):
+        ctl, fake_mouse, _ = controller
+        for _ in range(10):
+            ctl.scroll(0.0, 0.004)  # 0.48 units each: too small alone
+        total = sum(int(c.args[1] * 120) for c in fake_mouse.scroll.call_args_list)
+        assert total == 4  # 10 × 0.48 = 4.8 → 4 whole units sent, 0.8 carried
+
+    def test_no_scroll_call_when_nothing_accumulated(self, controller):
+        ctl, fake_mouse, _ = controller
+        ctl.scroll(0.0, 0.001)
+        fake_mouse.scroll.assert_not_called()
+
+
+@pytest.mark.parametrize("units", [1, 2, 3, 7, 59, 60, 119, 120, 121, 240, 1199, 2400])
+def test_wheel_unit_conversion_is_exact(units):
+    from remote_mouse.input_controller import wheel_units_to_notches
+
+    assert int(wheel_units_to_notches(units) * 120) == units
+    assert int(wheel_units_to_notches(-units) * 120) == -units
+    assert wheel_units_to_notches(0) == 0.0
 
     def test_type_text(self, controller):
         ctl, _, fake_keyboard = controller

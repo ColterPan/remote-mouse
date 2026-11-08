@@ -25,7 +25,23 @@ def test_missing_file_creates_fresh_config(tmp_path):
     config = load_config(path)
     assert is_valid_token(config.token)
     assert config.port == DEFAULT_PORT
-    assert json.loads(path.read_text()) == {"token": config.token, "port": DEFAULT_PORT}
+    assert json.loads(path.read_text()) == {
+        "token": config.token,
+        "port": DEFAULT_PORT,
+        "discovery": True,
+    }
+
+
+def test_discovery_can_be_turned_off(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"token": new_token(), "port": 8765, "discovery": False}))
+    assert load_config(path).discovery is False
+
+
+def test_invalid_discovery_value_defaults_to_on(tmp_path):
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"token": new_token(), "port": 8765, "discovery": "nope"}))
+    assert load_config(path).discovery is True
 
 
 def test_token_is_stable_across_loads(tmp_path):

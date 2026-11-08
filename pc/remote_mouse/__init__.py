@@ -24,4 +24,4 @@ The other modules are "glue" for a nice desktop experience:
     __main__.py    — wires everything together when the app starts
 """
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"

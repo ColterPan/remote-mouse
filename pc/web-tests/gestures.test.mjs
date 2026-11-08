@@ -8,6 +8,7 @@ import {
   TAP_MAX_MS,
   panToScroll,
   pointerGain,
+  smooth,
 } from '../remote_mouse/web/js/gestures.js';
 
 const types = (actions) => actions.map((a) => a.type);
@@ -18,10 +19,51 @@ function tap(g, t, x = 100, y = 100, id = 1) {
   return [...g.down(id, x, y, t), ...g.up(id, x, y, t + 60)];
 }
 
-test('slow movement uses the plain sensitivity, fast movement is boosted', () => {
-  assert.equal(pointerGain(0.05, 2), 2);
-  assert.ok(pointerGain(1.5, 2) > 2);
+test('slow movement ≈ plain sensitivity, fast movement is boosted, curve is smooth', () => {
+  assert.ok(Math.abs(pointerGain(0.05, 2) - 2) < 0.05, 'precise at low speed');
+  assert.ok(pointerGain(1.5, 2) > 3);
   assert.equal(pointerGain(100, 1), pointerGain(50, 1), 'boost is capped');
+  // Monotonic and without jumps: small speed change → small gain change.
+  let previous = pointerGain(0, 1);
+  for (let s = 0.01; s <= 3; s += 0.01) {
+    const g = pointerGain(s, 1);
+    assert.ok(g >= previous, 'never decreases');
+    assert.ok(g - previous < 0.03, `no sudden jump at ${s.toFixed(2)}`);
+    previous = g;
+  }
+});
+
+test('speed smoothing ignores a single noisy sample', () => {
+  let v = 0.5;
+  v = smooth(v, 5, 8, 24); // one wild reading
+  assert.ok(v < 2, `smoothed value stays sane (${v.toFixed(2)})`);
+  for (let i = 0; i < 20; i += 1) v = smooth(v, 0.5, 8, 24);
+  assert.ok(Math.abs(v - 0.5) < 0.05, 'settles back');
+});
+
+test('a fast two-finger flick produces a fling; a slow scroll does not', () => {
+  const flick = new GestureTracker({ naturalScroll: true, scrollSpeed: 1 });
+  flick.down(1, 100, 400, 0);
+  flick.down(2, 150, 400, 2);
+  for (let i = 1; i <= 8; i += 1) {
+    flick.move(1, 100, 400 - i * 30, i * 8);
+    flick.move(2, 150, 400 - i * 30, i * 8 + 1);
+  }
+  flick.up(1, 100, 160, 70);
+  const out = flick.up(2, 150, 160, 72);
+  assert.equal(out.length, 1);
+  assert.equal(out[0].type, 'fling');
+  assert.ok(out[0].vy < 0, 'fingers up (natural) → keeps scrolling down');
+
+  const slow = new GestureTracker();
+  slow.down(1, 100, 400, 0);
+  slow.down(2, 150, 400, 2);
+  for (let i = 1; i <= 8; i += 1) {
+    slow.move(1, 100, 400 - i * 30, i * 8);
+    slow.move(2, 150, 400 - i * 30, i * 8 + 1);
+  }
+  slow.up(1, 100, 160, 400); // fingers rested before lifting
+  assert.deepEqual(slow.up(2, 150, 160, 402), []);
 });
 
 test('natural scrolling: fingers up scrolls the page down', () => {

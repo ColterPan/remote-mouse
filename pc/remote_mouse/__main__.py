@@ -33,6 +33,7 @@ from PIL import Image
 from . import __version__, autostart
 from .config import Config, default_config_dir, is_valid_port, load_config, save_config
 from .config import with_new_token as config_with_new_token
+from .discovery import ServiceAdvertiser
 from .input_controller import PynputController
 from .netinfo import build_pairing_url, get_lan_ip, list_private_ipv4
 from .security import FailedAuthLimiter
@@ -146,6 +147,25 @@ def main(argv: list[str] | None = None) -> int:
     except OSError:
         logger.warning("Could not refresh autostart entry", exc_info=True)
 
+    # Announce on the network so the phone app finds this PC even after its
+    # IP address changes (see discovery.py). Never announces the token.
+    # Only the main address (the one with the default route): virtual adapters
+    # (WSL, Hyper-V, VPNs) aren't reachable from a phone, and older Android
+    # versions only use the first address they're given.
+    advertiser = ServiceAdvertiser(
+        port=server.bound_port or port,
+        fingerprint=certificate.fingerprint_sha256,
+        get_addresses=lambda: [get_lan_ip()],
+    )
+    if config.discovery:
+        advertiser.start()
+    else:
+        logger.info("Network discovery is turned off in config.json")
+
+    def shutdown() -> None:
+        advertiser.stop()
+        server.stop()
+
     state = {"config": config}
 
     def reset_pairing() -> None:
@@ -163,7 +183,7 @@ def main(argv: list[str] | None = None) -> int:
         get_addresses=network_addresses,
         build_url=build_url,
         on_reset_pairing=reset_pairing,
-        on_quit=server.stop,
+        on_quit=shutdown,
     )
     ctx.on_client_change = tray.set_client_count
 

@@ -6,3 +6,4 @@ pillow==13.0.0         # images for the tray icon and QR code
 pynput==1.8.2          # injects mouse/keyboard input (Windows SendInput)
 pystray==0.19.5        # system-tray icon and menu
 qrcode==8.2            # draws the pairing QR code
+zeroconf==0.154.0      # announces the PC on the LAN so the phone app finds it
