@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# PyInstaller output
+pc/build/
+pc/dist/
+
+# Never commit secrets: these live in %APPDATA%\RemoteMouse, but just in case
+config.json
+*.pem
+*.key
+*.keystore
+*.jks
+
+# Android (phase 2)
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/.idea/
+*.apk
+*.aab
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

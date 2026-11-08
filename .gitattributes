@@ -1,0 +1,4 @@
+# Normalise line endings in the repo (LF) and check out natively per OS.
+* text=auto
+*.png binary
+*.ico binary

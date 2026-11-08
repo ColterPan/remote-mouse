@@ -1,0 +1,8 @@
+# Runtime dependencies for the PC app — exact versions for reproducible,
+# auditable builds. Dependabot opens a PR when any of these has an update.
+aiohttp==3.14.5        # HTTPS + WebSocket server
+cryptography==50.0.2   # creates the self-signed certificate
+pillow==13.0.0         # images for the tray icon and QR code
+pynput==1.8.2          # injects mouse/keyboard input (Windows SendInput)
+pystray==0.19.5        # system-tray icon and menu
+qrcode==8.2            # draws the pairing QR code

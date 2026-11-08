@@ -1,0 +1,12 @@
+# Dependabot checks weekly for security fixes and updates to our dependencies
+# and opens a pull request — CI then tests the update before you merge it.
+version: 2
+updates:
+  - package-ecosystem: pip
+    directory: /pc
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

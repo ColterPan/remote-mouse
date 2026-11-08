@@ -1,0 +1,336 @@
+/*
+  styles.css — Look and feel of the phone remote.
+
+  * Colours are defined once as CSS variables (tokens) below; the light theme
+    just overrides them. Change a colour here and it changes everywhere.
+  * Mobile-first: the layout is a vertical flex column that fills the screen,
+    with the touchpad taking all remaining space.
+  * `env(safe-area-inset-*)` keeps controls clear of notches and gesture bars.
+  * `touch-action: none` on the touchpad stops the browser from scrolling or
+    zooming the page while you use it as a trackpad.
+*/
+
+:root {
+  --bg: #0e1014;
+  --surface: #171a21;
+  --surface-2: #1f232c;
+  --surface-3: #2a2f3a;
+  --border: #2c313c;
+  --text: #e9ecf2;
+  --text-dim: #9aa3b2;
+  --accent: #5b8cff;
+  --accent-soft: rgba(91, 140, 255, 0.18);
+  --ok: #34c77b;
+  --warn: #f2b84b;
+  --bad: #ef5b5b;
+  --radius: 16px;
+  --radius-sm: 10px;
+  --gap: 8px;
+  --font: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #eef1f6;
+    --surface: #ffffff;
+    --surface-2: #f3f5f9;
+    --surface-3: #e4e8ef;
+    --border: #d9dee7;
+    --text: #151821;
+    --text-dim: #5d6576;
+    --accent-soft: rgba(91, 140, 255, 0.14);
+  }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  overscroll-behavior: none;       /* no pull-to-refresh */
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;      /* no double-tap zoom on buttons */
+}
+
+svg { width: 22px; height: 22px; fill: currentColor; }
+
+/* ---- App shell ---------------------------------------------------------- */
+
+.app {
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  padding:
+    calc(env(safe-area-inset-top) + 8px)
+    calc(env(safe-area-inset-right) + 10px)
+    calc(env(safe-area-inset-bottom) + 8px)
+    calc(env(safe-area-inset-left) + 10px);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 40px;
+}
+
+.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text-dim);
+  min-width: 0;
+}
+.status #status-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--warn);
+  flex: none;
+  transition: background 0.2s;
+}
+.status[data-state="connected"] .dot { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.status[data-state="offline"] .dot,
+.status[data-state="unauthorized"] .dot { background: var(--bad); }
+.status[data-state="connecting"] .dot { animation: pulse 1s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: 0.3; } }
+
+.icon-btn {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text-dim);
+  display: grid; place-items: center;
+}
+.icon-btn:active { background: var(--surface-2); }
+
+/* ---- Touchpad ----------------------------------------------------------- */
+
+.pad-area {
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  gap: var(--gap);
+}
+
+.touchpad {
+  flex: 1;
+  position: relative;
+  border-radius: var(--radius);
+  background:
+    radial-gradient(circle, var(--surface-3) 1px, transparent 1.5px) 0 0 / 22px 22px,
+    var(--surface);
+  border: 1px solid var(--border);
+  touch-action: none;
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.touchpad.active { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent-soft); }
+.touchpad.dragging { border-color: var(--warn); }
+
+.touchpad-hint {
+  position: absolute;
+  inset: auto 0 16px 0;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+.touchpad-hint p { margin: 2px 12px; }
+.touchpad-hint.hidden { opacity: 0; }
+
+.scroll-strip {
+  width: 44px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  touch-action: none;
+  display: grid; place-items: center;
+  color: var(--text-dim);
+  font-size: 20px;
+}
+.scroll-strip.active { border-color: var(--accent); }
+
+/* ---- Mouse buttons ------------------------------------------------------ */
+
+.mouse-buttons {
+  display: grid;
+  grid-template-columns: 1fr 52px 1fr 52px;
+  gap: var(--gap);
+  height: 64px;
+}
+.mbtn {
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-weight: 600;
+  font-size: 15px;
+  touch-action: none;
+}
+.mbtn.pressed, .mbtn:active { background: var(--accent); color: #fff; border-color: var(--accent); }
+.mbtn-mid { font-size: 22px; }
+.mbtn-lock { display: grid; place-items: center; color: var(--text-dim); }
+.mbtn-lock[aria-pressed="true"] { background: var(--warn); color: #111; border-color: var(--warn); }
+
+/* ---- Panels ------------------------------------------------------------- */
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px;
+  animation: slide-up 0.18s ease-out;
+}
+@keyframes slide-up { from { transform: translateY(8px); opacity: 0; } }
+
+.key-row { display: flex; gap: 6px; }
+.scroll-x { overflow-x: auto; scrollbar-width: none; }
+.scroll-x::-webkit-scrollbar { display: none; }
+
+.key-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  max-height: 38dvh;
+  overflow-y: auto;
+}
+
+.key, .chip, .media {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  min-height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.key-row .key { flex: none; min-width: 48px; }
+.key:active, .chip:active, .media:active { background: var(--surface-3); }
+.key.mod.armed {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.chip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(92px, 1fr));
+  gap: 6px;
+  max-height: 38dvh;
+  overflow-y: auto;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.media { min-height: 56px; font-size: 24px; }
+
+/* ---- Toolbar ------------------------------------------------------------ */
+
+.toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+}
+.tool {
+  background: transparent;
+  border-radius: var(--radius-sm);
+  padding: 6px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.tool.active { color: var(--accent); background: var(--accent-soft); }
+
+/* The hidden text field must stay focusable (display:none would not open the
+   keyboard). 16px font stops mobile browsers from zooming in on focus. */
+.kb-input {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  font-size: 16px;
+  border: 0;
+  padding: 0;
+  caret-color: transparent;
+}
+
+/* ---- Pairing overlay & settings sheet ----------------------------------- */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  z-index: 10;
+}
+.overlay[hidden] { display: none; }
+.card {
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  user-select: text;
+}
+.card h1 { margin: 0 0 8px; font-size: 22px; }
+.card p, .card li { color: var(--text-dim); line-height: 1.5; }
+.card ol { padding-left: 20px; }
+
+.primary, .danger {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+}
+.primary { background: var(--accent); color: #fff; }
+.danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
+
+.sheet {
+  width: min(100% - 24px, 460px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  padding: 20px;
+}
+.sheet::backdrop { background: rgba(0, 0, 0, 0.55); }
+.sheet h2 { margin: 0 0 12px; font-size: 18px; }
+.field { display: grid; gap: 6px; margin: 14px 0; font-size: 14px; }
+.field span { display: flex; justify-content: space-between; color: var(--text-dim); }
+.field input[type="range"] { width: 100%; accent-color: var(--accent); }
+.toggle { display: flex; align-items: center; gap: 10px; margin: 12px 0; font-size: 14px; }
+.toggle input { width: 20px; height: 20px; accent-color: var(--accent); }
+.sheet-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; }
+
+/* Landscape phones: put buttons beside the pad would be nice, but keep it
+   simple — just shrink vertical chrome so the pad stays usable. */
+@media (max-height: 480px) {
+  .mouse-buttons { height: 48px; }
+  .tool span { display: none; }
+}

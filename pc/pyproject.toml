@@ -1,0 +1,45 @@
+# pyproject.toml — tool configuration for the PC app.
+# (Dependencies are pinned in requirements.txt / requirements-dev.txt.)
+
+[project]
+name = "remote-mouse"
+version = "1.0.0"
+description = "Ad-free, open-source remote mouse & keyboard: control your PC from your phone."
+requires-python = ">=3.11"
+license = { text = "MIT" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["remote_mouse"]
+# GUI glue (tray icon, tkinter window, startup wiring) is verified manually
+# with the checklist in README.md — everything else must be unit tested.
+omit = [
+    "remote_mouse/__main__.py",
+    "remote_mouse/tray.py",
+    "remote_mouse/qr_window.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+fail_under = 80
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "SIM"]
+ignore = ["S104"]  # binding 0.0.0.0 is intentional; private-IP filter in security.py
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106"]  # asserts and fake tokens are fine in tests
+
+[tool.bandit]
+exclude_dirs = ["tests", ".venv"]
+skips = ["B104"]  # same reason as S104 above

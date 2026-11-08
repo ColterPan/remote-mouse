@@ -1,0 +1,210 @@
+<!doctype html>
+<!--
+  index.html — The phone remote's single page.
+
+  Layout (top to bottom):
+    status bar      connection dot + PC name, settings button
+    touchpad        big area: move / tap / two-finger scroll (touchpad.js)
+    mouse buttons   Left / Middle / Right — hold to drag (app.js)
+    panels          Keys, Shortcuts, Media — only one open at a time
+    toolbar         toggles the keyboard and the panels
+
+  All behaviour lives in /static/js/*.js (ES modules, no frameworks, no CDNs).
+  The Content-Security-Policy set by the PC forbids inline scripts, so there
+  is intentionally no <script> code in this file.
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
+  <meta name="theme-color" content="#0e1014">
+  <meta name="color-scheme" content="dark light">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Remote Mouse</title>
+  <link rel="manifest" href="/static/manifest.webmanifest">
+  <link rel="icon" href="/static/icons/icon-192.png">
+  <link rel="stylesheet" href="/static/styles.css">
+  <script type="module" src="/static/js/app.js"></script>
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="topbar">
+      <div class="status" id="status" data-state="connecting" role="status" aria-live="polite">
+        <span class="dot" aria-hidden="true"></span>
+        <span id="status-text">Connecting…</span>
+      </div>
+      <button class="icon-btn" id="settings-btn" type="button" aria-label="Settings">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Zm7.43-2.53a7.8 7.8 0 0 0 0-1.94l2.03-1.58a.5.5 0 0 0 .12-.64l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7.4 7.4 0 0 0-1.68-.97l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.5.42l-.36 2.54c-.6.24-1.17.57-1.68.97l-2.39-.96a.5.5 0 0 0-.6.22L2.84 8.81a.5.5 0 0 0 .12.64l2.03 1.58a7.8 7.8 0 0 0 0 1.94l-2.03 1.58a.5.5 0 0 0-.12.64l1.92 3.32c.13.22.39.3.6.22l2.39-.96c.51.4 1.08.73 1.68.97l.36 2.54c.04.24.25.42.5.42h3.84c.25 0 .46-.18.5-.42l.36-2.54c.6-.24 1.17-.57 1.68-.97l2.39.96c.22.08.47 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.64l-2.03-1.58Z"/></svg>
+      </button>
+    </header>
+
+    <main class="pad-area">
+      <div class="touchpad" id="touchpad" aria-label="Touchpad">
+        <div class="touchpad-hint" id="touchpad-hint">
+          <p><strong>Slide</strong> to move</p>
+          <p><strong>Tap</strong> to click · <strong>2-finger tap</strong> to right-click</p>
+          <p><strong>2-finger slide</strong> to scroll · <strong>double-tap &amp; slide</strong> to drag</p>
+        </div>
+      </div>
+      <div class="scroll-strip" id="scroll-strip" aria-label="Scroll strip">
+        <span aria-hidden="true">⇕</span>
+      </div>
+    </main>
+
+    <div class="mouse-buttons">
+      <button type="button" class="mbtn" data-button="left">Left</button>
+      <button type="button" class="mbtn mbtn-mid" data-button="middle" aria-label="Middle button">•</button>
+      <button type="button" class="mbtn" data-button="right">Right</button>
+      <button type="button" class="mbtn mbtn-lock" id="drag-lock" aria-pressed="false" aria-label="Drag lock: hold left button">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 9V7a5 5 0 0 0-10 0v2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2ZM9 7a3 3 0 0 1 6 0v2H9V7Z"/></svg>
+      </button>
+    </div>
+
+    <!-- Modifier + common keys. Shown with the soft keyboard and in the Keys panel. -->
+    <section class="panel" id="panel-keyboard" hidden aria-label="Keyboard helpers">
+      <div class="key-row scroll-x">
+        <button type="button" class="key mod" data-mod="ctrl">Ctrl</button>
+        <button type="button" class="key mod" data-mod="alt">Alt</button>
+        <button type="button" class="key mod" data-mod="shift">Shift</button>
+        <button type="button" class="key mod" data-mod="win">Win</button>
+        <button type="button" class="key" data-key="esc">Esc</button>
+        <button type="button" class="key" data-key="tab">Tab</button>
+        <button type="button" class="key" data-key="left" aria-label="Left arrow">←</button>
+        <button type="button" class="key" data-key="up" aria-label="Up arrow">↑</button>
+        <button type="button" class="key" data-key="down" aria-label="Down arrow">↓</button>
+        <button type="button" class="key" data-key="right" aria-label="Right arrow">→</button>
+        <button type="button" class="key" data-key="backspace" aria-label="Backspace">⌫</button>
+        <button type="button" class="key" data-key="enter" aria-label="Enter">⏎</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-keys" hidden aria-label="Special keys">
+      <div class="key-grid">
+        <button type="button" class="key mod" data-mod="ctrl">Ctrl</button>
+        <button type="button" class="key mod" data-mod="alt">Alt</button>
+        <button type="button" class="key mod" data-mod="shift">Shift</button>
+        <button type="button" class="key mod" data-mod="win">Win</button>
+        <button type="button" class="key" data-key="esc">Esc</button>
+        <button type="button" class="key" data-key="tab">Tab</button>
+        <button type="button" class="key" data-key="backspace">Bksp</button>
+        <button type="button" class="key" data-key="enter">Enter</button>
+        <button type="button" class="key" data-key="insert">Ins</button>
+        <button type="button" class="key" data-key="delete">Del</button>
+        <button type="button" class="key" data-key="home">Home</button>
+        <button type="button" class="key" data-key="end">End</button>
+        <button type="button" class="key" data-key="page_up">PgUp</button>
+        <button type="button" class="key" data-key="page_down">PgDn</button>
+        <button type="button" class="key" data-key="up" aria-label="Up arrow">↑</button>
+        <button type="button" class="key" data-key="space">Space</button>
+        <button type="button" class="key" data-key="print_screen">PrtSc</button>
+        <button type="button" class="key" data-key="left" aria-label="Left arrow">←</button>
+        <button type="button" class="key" data-key="down" aria-label="Down arrow">↓</button>
+        <button type="button" class="key" data-key="right" aria-label="Right arrow">→</button>
+        <button type="button" class="key" data-key="f1">F1</button>
+        <button type="button" class="key" data-key="f2">F2</button>
+        <button type="button" class="key" data-key="f3">F3</button>
+        <button type="button" class="key" data-key="f4">F4</button>
+        <button type="button" class="key" data-key="f5">F5</button>
+        <button type="button" class="key" data-key="f6">F6</button>
+        <button type="button" class="key" data-key="f7">F7</button>
+        <button type="button" class="key" data-key="f8">F8</button>
+        <button type="button" class="key" data-key="f9">F9</button>
+        <button type="button" class="key" data-key="f10">F10</button>
+        <button type="button" class="key" data-key="f11">F11</button>
+        <button type="button" class="key" data-key="f12">F12</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-shortcuts" hidden aria-label="Shortcuts">
+      <div class="chip-grid">
+        <button type="button" class="chip" data-key="c" data-mods="ctrl">Copy</button>
+        <button type="button" class="chip" data-key="v" data-mods="ctrl">Paste</button>
+        <button type="button" class="chip" data-key="x" data-mods="ctrl">Cut</button>
+        <button type="button" class="chip" data-key="a" data-mods="ctrl">Select all</button>
+        <button type="button" class="chip" data-key="z" data-mods="ctrl">Undo</button>
+        <button type="button" class="chip" data-key="y" data-mods="ctrl">Redo</button>
+        <button type="button" class="chip" data-key="s" data-mods="ctrl">Save</button>
+        <button type="button" class="chip" data-key="f" data-mods="ctrl">Find</button>
+        <button type="button" class="chip" data-key="t" data-mods="ctrl">New tab</button>
+        <button type="button" class="chip" data-key="w" data-mods="ctrl">Close tab</button>
+        <button type="button" class="chip" data-key="f5">Refresh</button>
+        <button type="button" class="chip" data-key="tab" data-mods="alt">Alt+Tab</button>
+        <button type="button" class="chip" data-key="f4" data-mods="alt">Close app</button>
+        <button type="button" class="chip" data-key="d" data-mods="win">Desktop</button>
+        <button type="button" class="chip" data-key="win">Start</button>
+        <button type="button" class="chip" data-key="esc" data-mods="ctrl,shift">Task Mgr</button>
+      </div>
+    </section>
+
+    <section class="panel" id="panel-media" hidden aria-label="Media controls">
+      <div class="media-grid">
+        <button type="button" class="media" data-key="volume_down" aria-label="Volume down">🔉</button>
+        <button type="button" class="media" data-key="volume_mute" aria-label="Mute">🔇</button>
+        <button type="button" class="media" data-key="volume_up" aria-label="Volume up">🔊</button>
+        <button type="button" class="media" data-key="media_previous" aria-label="Previous track">⏮</button>
+        <button type="button" class="media" data-key="media_play_pause" aria-label="Play or pause">⏯</button>
+        <button type="button" class="media" data-key="media_next" aria-label="Next track">⏭</button>
+      </div>
+    </section>
+
+    <nav class="toolbar" aria-label="Tools">
+      <button type="button" class="tool" data-panel="panel-keyboard" id="keyboard-btn">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 5H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Zm-9 3h2v2h-2V8Zm0 3h2v2h-2v-2ZM8 8h2v2H8V8Zm0 3h2v2H8v-2ZM7 13H5v-2h2v2Zm0-3H5V8h2v2Zm9 6H8v-2h8v2Zm0-3h-2v-2h2v2Zm0-3h-2V8h2v2Zm3 3h-2v-2h2v2Zm0-3h-2V8h2v2Z"/></svg>
+        <span>Keyboard</span>
+      </button>
+      <button type="button" class="tool" data-panel="panel-keys">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h7v7H4V4Zm9 0h7v7h-7V4ZM4 13h7v7H4v-7Zm9 0h7v7h-7v-7Z"/></svg>
+        <span>Keys</span>
+      </button>
+      <button type="button" class="tool" data-panel="panel-shortcuts">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/></svg>
+        <span>Shortcuts</span>
+      </button>
+      <button type="button" class="tool" data-panel="panel-media">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7L8 5Z"/></svg>
+        <span>Media</span>
+      </button>
+    </nav>
+
+    <!-- Invisible text field: focusing it opens the phone's keyboard. -->
+    <input class="kb-input" id="kb-input" type="text" inputmode="text"
+           autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+           enterkeyhint="enter" aria-label="Type on your PC">
+  </div>
+
+  <!-- Shown when this phone has no valid pairing code. -->
+  <div class="overlay" id="pair-screen" hidden>
+    <div class="card">
+      <h1>Pair with your PC</h1>
+      <p id="pair-reason">This phone isn't paired yet.</p>
+      <ol>
+        <li>On your PC, start <strong>Remote Mouse</strong>.</li>
+        <li>Click the tray icon (near the clock) → <strong>Show pairing QR code</strong>.</li>
+        <li>Scan the QR code with this phone's camera.</li>
+      </ol>
+      <button type="button" class="primary" id="pair-retry">Try again</button>
+    </div>
+  </div>
+
+  <dialog class="sheet" id="settings">
+    <form method="dialog">
+      <h2>Settings</h2>
+      <label class="field">
+        <span>Pointer speed <output id="sensitivity-out"></output></span>
+        <input type="range" id="sensitivity" min="0.5" max="4" step="0.1">
+      </label>
+      <label class="field">
+        <span>Scroll speed <output id="scroll-out"></output></span>
+        <input type="range" id="scroll-speed" min="0.3" max="3" step="0.1">
+      </label>
+      <label class="toggle"><input type="checkbox" id="natural-scroll"> <span>Natural scrolling (content follows fingers)</span></label>
+      <label class="toggle"><input type="checkbox" id="haptics"> <span>Vibrate on click</span></label>
+      <label class="toggle"><input type="checkbox" id="keep-awake"> <span>Keep phone screen on</span></label>
+      <div class="sheet-actions">
+        <button type="button" class="danger" id="forget-pc">Forget this PC</button>
+        <button type="submit" class="primary">Done</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
