@@ -14,7 +14,7 @@
 ;    %APPDATA%\RemoteMouse are kept, so reinstalling doesn't break your phone.
 
 #ifndef AppVersion
-  #define AppVersion "1.1.0"
+  #define AppVersion "1.1.1"
 #endif
 
 [Setup]

@@ -3,7 +3,7 @@
 
 [project]
 name = "remote-mouse"
-version = "1.1.0"
+version = "1.1.1"
 description = "Ad-free, open-source remote mouse & keyboard: control your PC from your phone."
 requires-python = ">=3.11"
 license = { text = "MIT" }

@@ -234,10 +234,14 @@ def center_of(page: Page, selector: str) -> tuple[float, float]:
 
 
 def wait_until(
-    predicate: Callable[[], bool], timeout: float = 3.0, what: str = "condition"
+    predicate: Callable[[], bool],
+    timeout: float = 3.0,
+    what: str | Callable[[], str] = "condition",
 ) -> None:
+    """Poll until `predicate()` is true. `what` may be a function, so the
+    failure message can show the state at the moment of failure."""
     deadline = time.monotonic() + timeout
     while not predicate():
         if time.monotonic() > deadline:
-            raise AssertionError(f"timed out waiting for {what}")
+            raise AssertionError(f"timed out waiting for {what() if callable(what) else what}")
         time.sleep(0.02)

@@ -6,6 +6,7 @@
  *   native.js     Android-app mode: the native side owns the connection
  *   touchpad.js   touchpad + scroll strip (+ momentum scrolling)
  *   keyboard.js   typing, special keys, shortcuts, media keys
+ *   viewport.js   keeps the layout right while the phone keyboard is open
  *
  * Two modes, one page:
  *  • Browser: the QR code opens https://<pc>:8765/#t=<token>. We save the token,
@@ -28,8 +29,9 @@ import {
   tokenFromHash,
 } from './settings.js';
 import { createTouchpad } from './touchpad.js';
+import { trackViewport } from './viewport.js';
 
-const APP_VERSION = '1.1.0';
+const APP_VERSION = '1.1.1';
 const $ = (id) => document.getElementById(id);
 
 const bridge = nativeBridge();
@@ -227,6 +229,16 @@ for (const tool of tools) {
     showPanel(openPanel === tool.dataset.panel ? null : tool.dataset.panel);
   });
 }
+
+// --- Phone keyboard open/close: keep the touchpad usable (see viewport.js) ---
+
+trackViewport($('app'), (keyboardOpen) => {
+  $('app').classList.toggle('kb-open', keyboardOpen);
+  touchpad.reset(); // the pad just changed size; don't continue a half gesture
+  // Keyboard hidden by Android's back button / the keyboard's own hide key:
+  // close the keyboard panel too, so the toolbar shows the real state.
+  if (!keyboardOpen && openPanel === 'panel-keyboard') showPanel(null);
+});
 
 // --- Pairing / "Your PCs" screen ---------------------------------------------
 

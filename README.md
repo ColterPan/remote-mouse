@@ -16,6 +16,12 @@ Free and open source, with **no ads, no accounts and no cloud**. Your phone talk
 | 🖥️ PC (portable) | [RemoteMouse.exe](https://github.com/ColterPan/remote-mouse/releases/latest/download/RemoteMouse.exe) | One file, nothing installed. |
 | 📱 **Android phone** | **[RemoteMouse.apk](https://github.com/ColterPan/remote-mouse/releases/latest/download/RemoteMouse.apk)** | The phone app (Android 8+). Pair once and it connects by itself. |
 
+<table><tr>
+<td><img src="docs/images/download-qr.png" width="150" alt="QR code that downloads RemoteMouse.apk"></td>
+<td><b>📱 Get the app on your phone:</b> scan this QR code with the phone's camera and the APK downloads.<br>
+Already installed the PC app? Tray icon → <b>Get the phone app (QR)</b> shows the same code on your PC screen.</td>
+</tr></table>
+
 Checksums for every file are in `SHA256SUMS.txt` on the [Releases page](https://github.com/ColterPan/remote-mouse/releases/latest). No Android phone? The PC also serves a [browser version](#no-app-use-the-browser).
 
 ---
@@ -27,7 +33,7 @@ Checksums for every file are in `SHA256SUMS.txt` on the [Releases page](https://
 - When Windows Firewall asks, tick **Private networks** only and click **Allow**.
 - The pairing window opens. Remote Mouse now lives in the tray, near the clock.
 
-**2. Phone:** open **RemoteMouse.apk** from your downloads.
+**2. Phone:** in the pairing window click **Get the phone app** and scan that QR code with your phone's camera (or use the QR above). Open the downloaded **RemoteMouse.apk**.
 - Android asks to allow installing apps from your browser or Files app. Allow it for this install. (The app isn't on the Play Store, so there are no ads or trackers.)
 
 **3. Pair once:** in the app, tap **Scan QR code** and point it at the PC's pairing window. **Done.**
@@ -49,6 +55,9 @@ From now on, just open the app: it **connects automatically**, even after the PC
 <p align="center">
   <img src="docs/images/pc-pairing-window.png" width="330" alt="PC pairing window with QR code">
   &nbsp;&nbsp;
+  <img src="docs/images/pc-get-app-window.png" width="345" alt="PC window showing the app download QR code">
+</p>
+<p align="center">
   <img src="docs/images/phone-landscape.png" width="480" alt="Landscape layout">
 </p>
 

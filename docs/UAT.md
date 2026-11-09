@@ -1,4 +1,45 @@
-# User acceptance testing: v1.1.0
+# User acceptance testing
+
+## v1.1.1: phone keyboard fix + "Get the phone app" QR
+
+**Bug reported:** opening the phone keyboard in the app messed up the touchpad size.
+
+**Reproduced on v1.1.0, Android 15 emulator, real on-screen keyboard:**
+- The app was not resized and the keyboard covered the controls. Android 15 ignores `adjustResize` for apps targeting SDK 35.
+- The key row stretched the layout to 632 px on a 412 px screen, pushing the Right button and toolbar off-screen.
+- After closing the keyboard the touchpad stayed the wrong size.
+- On smaller phones the keyboard made the visible area wider than tall, so CSS switched to the *landscape* layout and squashed the touchpad to 18 px wide.
+
+**Fixes:**
+- The native side handles the keyboard and system-bar insets itself (`MainActivity.fitAboveBarsAndKeyboard`).
+- The page sizes itself to the visible area and never scrolls (`viewport.js`).
+- A compact layout is used while the keyboard is open.
+- Landscape is now judged on the full screen size.
+- Long rows scroll instead of widening the page.
+
+| # | Check (real taps, real Gboard, real PC app) | Android 15 | Android 14 |
+|---|---|---|---|
+| K1 | Keyboard open: touchpad big (336×310 css px), Left/Right, key row and toolbar all above the keyboard | ✅ | ✅ |
+| K2 | App window ends exactly at the keyboard's top edge | ✅ (1517 = 1517 px) | ✅ (1499 = 1499 px) |
+| K3 | Swipe with the keyboard open reaches the PC cursor losslessly | ✅ 404→405, 403→402 px | ⚠️ not measured: the PC's mouse was in use during the run |
+| K4 | Back button hides the keyboard → full-size touchpad again, keyboard panel closed | ✅ | ✅ |
+| K5 | 10 keyboard open/close toggles in a row, layout correct every time | ✅ | ✅ |
+| K6 | Landscape, and landscape with the keyboard: touchpad visible and usable | ✅ | ✅ |
+| K7 | Still connected at the end | ✅ | ✅ |
+
+**Automated:**
+- 6 new browser E2E tests in `e2e/test_keyboard_layout.py`: big phone, tall keyboard, small 360×640 phone, landscape, 5 rapid toggles, typing in compact mode.
+- 8 new unit tests in `web-tests/viewport.test.mjs`.
+- 3 tests in `tests/test_qr_window.py`.
+
+**Get the phone app QR:**
+- The tray menu item and the pairing-window button show a QR code for `releases/latest/download/RemoteMouse.apk`.
+- An independent QR reader (zxing-cpp) decodes the window and the README image to exactly that URL.
+- The URL returns HTTP 200 with `application/vnd.android.package-archive`.
+
+---
+
+# v1.1.0
 
 Every check below was run against **real software**, not mocks: the real PC app (installed with the real installer), the real Android app on a real Android 14 system (emulator, Pixel 7 profile), and the real phone UI in mobile Chrome. Only the automated browser tests swap the final mouse/keyboard injection for a recorder.
 

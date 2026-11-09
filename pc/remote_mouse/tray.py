@@ -62,6 +62,9 @@ class TrayApp:
                     "Show pairing QR code", lambda: self._post(self._qr.show), default=True
                 ),
                 pystray.MenuItem(
+                    "Get the phone app (QR)", lambda: self._post(self._qr.show_app_download)
+                ),
+                pystray.MenuItem(
                     "Start with Windows",
                     self._toggle_autostart,
                     checked=lambda _item: autostart.is_enabled(),

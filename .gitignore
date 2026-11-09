@@ -34,3 +34,6 @@ android/.idea/
 .idea/
 .DS_Store
 Thumbs.db
+
+# Kotlin compiler session files
+.kotlin/

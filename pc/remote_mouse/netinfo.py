@@ -22,6 +22,12 @@ from .security import is_private_address
 _ROUTE_PROBE_ADDRESS = ("192.0.2.1", 9)
 LOOPBACK = "127.0.0.1"
 
+# Where phones download the Android app. "latest" always points at the newest
+# GitHub release, so this link never needs updating. It's public (no secrets).
+APP_DOWNLOAD_URL = (
+    "https://github.com/ColterPan/remote-mouse/releases/latest/download/RemoteMouse.apk"
+)
+
 
 def list_private_ipv4() -> list[str]:
     """All private, non-loopback IPv4 addresses of this machine (no duplicates)."""

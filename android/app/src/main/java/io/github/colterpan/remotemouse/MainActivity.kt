@@ -11,8 +11,12 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.webkit.WebViewAssetLoader
 import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
@@ -93,9 +97,36 @@ class MainActivity : ComponentActivity(), NativeBridge.Actions {
             if (isMainFrame && origin == Uri.parse(APP_ORIGIN)) bridge.onPageMessage(message.data, reply)
         }
 
-        setContentView(webView)
+        setContentView(fitAboveBarsAndKeyboard(webView))
         webView.loadUrl("$APP_ORIGIN/static/index.html")
         handleDebugIntent(intent)
+    }
+
+    /**
+     * Keep the remote exactly between the status bar and the top of the phone
+     * keyboard (or the navigation bar when the keyboard is closed).
+     *
+     * Android 15+ draws apps edge-to-edge and ignores `adjustResize`, so
+     * without this the keyboard would cover the controls and the WebView would
+     * pan the page around, making the touchpad jump. We handle the insets
+     * ourselves, so every Android version (8 to 16) behaves the same: the
+     * WebView is resized once when the keyboard opens and once when it closes.
+     */
+    private fun fitAboveBarsAndKeyboard(content: WebView): FrameLayout {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        val container = FrameLayout(this).apply {
+            setBackgroundColor(getColor(R.color.background))
+            addView(content, FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT)
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(container) { view, insets ->
+            val types = WindowInsetsCompat.Type.systemBars() or
+                WindowInsetsCompat.Type.displayCutout() or
+                WindowInsetsCompat.Type.ime()
+            val bars = insets.getInsets(types)
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            WindowInsetsCompat.CONSUMED
+        }
+        return container
     }
 
     override fun onNewIntent(intent: Intent) {
